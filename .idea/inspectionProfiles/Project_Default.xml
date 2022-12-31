@@ -1,0 +1,29 @@
+<component name="InspectionProjectProfileManager">
+  <profile version="1.0">
+    <option name="myName" value="Project Default" />
+    <inspection_tool class="PyChainedComparisonsInspection" enabled="true" level="WEAK WARNING" enabled_by_default="true">
+      <option name="ignoreConstantInTheMiddle" value="true" />
+    </inspection_tool>
+    <inspection_tool class="PyPackageRequirementsInspection" enabled="true" level="WARNING" enabled_by_default="true">
+      <option name="ignoredPackages">
+        <value>
+          <list size="13">
+            <item index="0" class="java.lang.String" itemvalue="QuantStats" />
+            <item index="1" class="java.lang.String" itemvalue="scipy" />
+            <item index="2" class="java.lang.String" itemvalue="bs4" />
+            <item index="3" class="java.lang.String" itemvalue="pyfolio" />
+            <item index="4" class="java.lang.String" itemvalue="sklearn" />
+            <item index="5" class="java.lang.String" itemvalue="alpaca-trade-api" />
+            <item index="6" class="java.lang.String" itemvalue="numpy" />
+            <item index="7" class="java.lang.String" itemvalue="ccxt" />
+            <item index="8" class="java.lang.String" itemvalue="alphalens" />
+            <item index="9" class="java.lang.String" itemvalue="backtrader" />
+            <item index="10" class="java.lang.String" itemvalue="alpaca-backtrader-api" />
+            <item index="11" class="java.lang.String" itemvalue="zipline" />
+            <item index="12" class="java.lang.String" itemvalue="python-binance" />
+          </list>
+        </value>
+      </option>
+    </inspection_tool>
+  </profile>
+</component>
