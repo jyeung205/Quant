@@ -1,10 +1,12 @@
 import numpy as np
 from scipy.stats import norm
+import matplotlib.pyplot as plt
 
 
 class BlackScholes:
 
-    def __init__(self, s=None, k=None, t=None, r=None, sigma=None):
+    def __init__(self, s=None, k=None, t=None, r=None,
+                 sigma=None):  # todo t can be date, and can input ticker to get current price
         self.s = s
         self.k = k
         self.t = t
@@ -25,7 +27,7 @@ class BlackScholes:
         if sigma is None:
             sigma = self.sigma
 
-        return (np.log(s/k) + (r + sigma**2/2.)*t) / (sigma * np.sqrt(t))
+        return (np.log(s / k) + (r + sigma ** 2 / 2.) * t) / (sigma * np.sqrt(t))
 
     def _calc_d2(self, s=None, k=None, t=None, r=None, sigma=None):
         if s is None:
@@ -97,13 +99,37 @@ class BlackScholes:
     def forward(self):
         return self.s - self.k * np.exp(-self.r * self.t)
 
-    def delta_call(self):
-        return norm.cdf(self.d1)
+    def delta_call(self, s=None, k=None, t=None, r=None, sigma=None):
+        if s is None:
+            s = self.s
+        if k is None:
+            k = self.k
+        if t is None:
+            t = self.t
+        if r is None:
+            r = self.r
+        if sigma is None:
+            sigma = self.sigma
+        d1 = self._calc_d1(s, k, t, r, sigma)
+        return norm.cdf(d1)
 
-    def delta_put(self):
-        return norm.cdf(-self.d2)
+    def delta_put(self, s=None, k=None, t=None, r=None, sigma=None):
+        if s is None:
+            s = self.s
+        if k is None:
+            k = self.k
+        if t is None:
+            t = self.t
+        if r is None:
+            r = self.r
+        if sigma is None:
+            sigma = self.sigma
+        d2 = self._calc_d2(s, k, t, r, sigma)
+        return norm.cdf(d2)
 
-    def gamma(self):
+    def gamma_call(self):
+        return (norm.pdf(self.d1)) / (self.s * self.sigma * np.sqrt(self.t))
+    def gamma_put(self):
         return (norm.pdf(self.d1)) / (self.s * self.sigma * np.sqrt(self.t))
 
     def vega(self, s=None, k=None, t=None, r=None, sigma=None):
@@ -132,8 +158,38 @@ class BlackScholes:
     def rho_put(self):
         return
 
-    def plot_delta(self):
-        return
+    def plot_delta_call(self, s=None, k=None, t=None, r=None, sigma=None):
+        if s is None:
+            s = self.s
+        if k is None:
+            k = self.k
+        if t is None:
+            t = self.t
+        if r is None:
+            r = self.r
+        if sigma is None:
+            sigma = self.sigma
+        spots = [i for i in range(int(s * 0.01), int(s * 2), 1)]
+        deltas = [self.delta_call(s, k, t, r, sigma) for s in spots]
+        plt.figure()
+        plt.plot(spots, deltas)
+        plt.show()
+    def plot_delta_put(self, s=None, k=None, t=None, r=None, sigma=None):
+        if s is None:
+            s = self.s
+        if k is None:
+            k = self.k
+        if t is None:
+            t = self.t
+        if r is None:
+            r = self.r
+        if sigma is None:
+            sigma = self.sigma
+        spots = [i for i in range(int(s * 0.01), int(s * 2), 1)]
+        deltas = [self.delta_put(s, k, t, r, sigma) for s in spots]
+        plt.figure()
+        plt.plot(spots, deltas)
+        plt.show()
 
     def plot_gamma(self):
         return
@@ -149,9 +205,10 @@ class BlackScholes:
 
 
 if __name__ == "__main__":
-    bs = BlackScholes(123.18, 125, 39/365, 0.04, 0.8535)
+    bs = BlackScholes(123.18, 125, 39 / 365, 0.04, 0.8535)
     print(bs.call())
     print(bs.vega())
     print(bs.implied_vol(11.90, sigma0=0.7))
     print(bs.implied_vol(14.20, sigma0=0.7))
-    # print(bs.implied_vol(14.20))
+    print(bs.delta_call())
+    bs.plot_delta_call()
