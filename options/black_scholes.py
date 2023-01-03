@@ -1,19 +1,28 @@
+from datetime import date, datetime
+
+import matplotlib.pyplot as plt
 import numpy as np
 from scipy.stats import norm
-import matplotlib.pyplot as plt
+import yfinance as yf
 
 
 class BlackScholes:
 
     def __init__(self, s=None, k=None, t=None, r=None,
-                 sigma=None):  # todo t can be date, and can input ticker to get current price
-        self.s = s
+                 sigma=None):
+        if type(s) == str:
+            data = yf.download(tickers=s, period='1m', interval='1m')  # todo check if this is live price
+            self.s = data['Close'][-1]
+        else:
+            self.s = s
         self.k = k
-        self.t = t
+        if type(t) == float:
+            self.t = t
+        else:
+            delta = datetime.strptime(t, '%d-%m-%Y').date() - date.today()
+            self.t = int(delta.days + 1) / 365
         self.r = r
         self.sigma = sigma
-        self.d1 = self._calc_d1(s, k, t, r, sigma)
-        self.d2 = self._calc_d2(s, k, t, r, sigma)
 
     def _calc_d1(self, s=None, k=None, t=None, r=None, sigma=None):
         if s is None:
@@ -127,10 +136,19 @@ class BlackScholes:
         d2 = self._calc_d2(s, k, t, r, sigma)
         return norm.cdf(d2)
 
-    def gamma_call(self):
-        return (norm.pdf(self.d1)) / (self.s * self.sigma * np.sqrt(self.t))
-    def gamma_put(self):
-        return (norm.pdf(self.d1)) / (self.s * self.sigma * np.sqrt(self.t))
+    def gamma(self, s=None, k=None, t=None, r=None, sigma=None):
+        if s is None:
+            s = self.s
+        if k is None:
+            k = self.k
+        if t is None:
+            t = self.t
+        if r is None:
+            r = self.r
+        if sigma is None:
+            sigma = self.sigma
+        d1 = self._calc_d1(s, k, t, r, sigma)
+        return (norm.pdf(d1)) / (s * sigma * np.sqrt(t))
 
     def vega(self, s=None, k=None, t=None, r=None, sigma=None):
         if s is None:
@@ -147,16 +165,67 @@ class BlackScholes:
         vega = s * np.sqrt(t) * norm.pdf(d1)
         return vega
 
-    def theta_call(self):
-        p1 = - self.s * (norm.pdf(self.d1)) * self.sigma / (2 * np.sqrt(self.t))
-        p2 = self.r * self.k * np.exp(-self.r * self.t) * norm.cdf(self.d2)
+    def theta_call(self, s=None, k=None, t=None, r=None, sigma=None):
+        if s is None:
+            s = self.s
+        if k is None:
+            k = self.k
+        if t is None:
+            t = self.t
+        if r is None:
+            r = self.r
+        if sigma is None:
+            sigma = self.sigma
+        d1 = self._calc_d1(s, k, t, r, sigma)
+        d2 = self._calc_d2(s, k, t, r, sigma)
+        p1 = - s * (norm.pdf(d1)) * sigma / (2 * np.sqrt(t))
+        p2 = r * k * np.exp(-r * t) * norm.cdf(d2)
         return p1 - p2
 
-    def rho_call(self):
-        return self.k * self.t * np.exp(-self.r * self.t) * norm.cdf(self.d2)
+    def theta_put(self, s=None, k=None, t=None, r=None, sigma=None):
+        if s is None:
+            s = self.s
+        if k is None:
+            k = self.k
+        if t is None:
+            t = self.t
+        if r is None:
+            r = self.r
+        if sigma is None:
+            sigma = self.sigma
+        d1 = self._calc_d1(s, k, t, r, sigma)
+        d2 = self._calc_d2(s, k, t, r, sigma)
+        p1 = - s * (norm.pdf(d1)) * sigma / (2 * np.sqrt(t))
+        p2 = r * k * np.exp(-r * t) * norm.cdf(-d2)
+        return p1 + p2
 
-    def rho_put(self):
-        return
+    def rho_call(self, s=None, k=None, t=None, r=None, sigma=None):
+        if s is None:
+            s = self.s
+        if k is None:
+            k = self.k
+        if t is None:
+            t = self.t
+        if r is None:
+            r = self.r
+        if sigma is None:
+            sigma = self.sigma
+        d2 = self._calc_d2(s, k, t, r, sigma)
+        return k * t * np.exp(-r * t) * norm.cdf(d2)
+
+    def rho_put(self, s=None, k=None, t=None, r=None, sigma=None):
+        if s is None:
+            s = self.s
+        if k is None:
+            k = self.k
+        if t is None:
+            t = self.t
+        if r is None:
+            r = self.r
+        if sigma is None:
+            sigma = self.sigma
+        d2 = self._calc_d2(s, k, t, r, sigma)
+        return -k * t * np.exp(-r * t) * norm.cdf(-d2)
 
     def plot_delta_call(self, s=None, k=None, t=None, r=None, sigma=None):
         if s is None:
@@ -172,8 +241,10 @@ class BlackScholes:
         spots = [i for i in range(int(s * 0.01), int(s * 2), 1)]
         deltas = [self.delta_call(s, k, t, r, sigma) for s in spots]
         plt.figure()
+        plt.title('Delta - Call')
         plt.plot(spots, deltas)
         plt.show()
+
     def plot_delta_put(self, s=None, k=None, t=None, r=None, sigma=None):
         if s is None:
             s = self.s
@@ -188,27 +259,123 @@ class BlackScholes:
         spots = [i for i in range(int(s * 0.01), int(s * 2), 1)]
         deltas = [self.delta_put(s, k, t, r, sigma) for s in spots]
         plt.figure()
+        plt.title('Delta - Put')
         plt.plot(spots, deltas)
         plt.show()
 
-    def plot_gamma(self):
-        return
+    def plot_gamma(self, s=None, k=None, t=None, r=None, sigma=None):
+        if s is None:
+            s = self.s
+        if k is None:
+            k = self.k
+        if t is None:
+            t = self.t
+        if r is None:
+            r = self.r
+        if sigma is None:
+            sigma = self.sigma
+        spots = [i for i in range(int(s * 0.01), int(s * 2), 1)]
+        deltas = [self.gamma(s, k, t, r, sigma) for s in spots]
+        plt.figure()
+        plt.title('Gamma')
+        plt.plot(spots, deltas)
+        plt.show()
 
-    def plot_rho(self):
-        return
+    def plot_vega(self, s=None, k=None, t=None, r=None, sigma=None):
+        if s is None:
+            s = self.s
+        if k is None:
+            k = self.k
+        if t is None:
+            t = self.t
+        if r is None:
+            r = self.r
+        if sigma is None:
+            sigma = self.sigma
+        spots = [i for i in range(int(s * 0.01), int(s * 2), 1)]
+        deltas = [self.vega(s, k, t, r, sigma) for s in spots]
+        plt.figure()
+        plt.title('Vega')
+        plt.plot(spots, deltas)
+        plt.show()
 
-    def plot_vega(self):
-        return
+    def plot_theta_call(self, s=None, k=None, t=None, r=None, sigma=None):
+        if s is None:
+            s = self.s
+        if k is None:
+            k = self.k
+        if t is None:
+            t = self.t
+        if r is None:
+            r = self.r
+        if sigma is None:
+            sigma = self.sigma
+        spots = [i for i in range(int(s * 0.01), int(s * 2), 1)]
+        deltas = [self.theta_call(s, k, t, r, sigma) for s in spots]
+        plt.figure()
+        plt.title('Theta - Call')
+        plt.plot(spots, deltas)
+        plt.show()
 
-    def plot_iv(self):
+    def plot_theta_put(self, s=None, k=None, t=None, r=None, sigma=None):
+        if s is None:
+            s = self.s
+        if k is None:
+            k = self.k
+        if t is None:
+            t = self.t
+        if r is None:
+            r = self.r
+        if sigma is None:
+            sigma = self.sigma
+        spots = [i for i in range(int(s * 0.01), int(s * 2), 1)]
+        deltas = [self.theta_put(s, k, t, r, sigma) for s in spots]
+        plt.figure()
+        plt.title('Theta - Put')
+        plt.plot(spots, deltas)
+        plt.show()
+
+    def plot_rho_call(self, s=None, k=None, t=None, r=None, sigma=None):
+        if s is None:
+            s = self.s
+        if k is None:
+            k = self.k
+        if t is None:
+            t = self.t
+        if r is None:
+            r = self.r
+        if sigma is None:
+            sigma = self.sigma
+        spots = [i for i in range(int(s * 0.01), int(s * 2), 1)]
+        deltas = [self.rho_call(s, k, t, r, sigma) for s in spots]
+        plt.figure()
+        plt.title('Rho - Call')
+        plt.plot(spots, deltas)
+        plt.show()
+
+    def plot_rho_put(self, s=None, k=None, t=None, r=None, sigma=None):
+        if s is None:
+            s = self.s
+        if k is None:
+            k = self.k
+        if t is None:
+            t = self.t
+        if r is None:
+            r = self.r
+        if sigma is None:
+            sigma = self.sigma
+        spots = [i for i in range(int(s * 0.01), int(s * 2), 1)]
+        deltas = [self.rho_put(s, k, t, r, sigma) for s in spots]
+        plt.figure()
+        plt.title('Rho - Put')
+        plt.plot(spots, deltas)
+        plt.show()
+
+    def plot_iv(self, ticker):
         return
 
 
 if __name__ == "__main__":
-    bs = BlackScholes(123.18, 125, 39 / 365, 0.04, 0.8535)
+    bs = BlackScholes('TSLA', 125, "10-02-2023", 0.04, 0.8535)
+
     print(bs.call())
-    print(bs.vega())
-    print(bs.implied_vol(11.90, sigma0=0.7))
-    print(bs.implied_vol(14.20, sigma0=0.7))
-    print(bs.delta_call())
-    bs.plot_delta_call()
