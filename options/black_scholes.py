@@ -2,6 +2,7 @@ from datetime import date, datetime
 
 import matplotlib.pyplot as plt
 import numpy as np
+import pandas as pd
 from scipy.stats import norm
 import yfinance as yf
 
@@ -18,7 +19,7 @@ class BlackScholes:
         self.k = k
         if type(t) == float:
             self.t = t
-        else:
+        elif type(t) == str:
             delta = datetime.strptime(t, '%d-%m-%Y').date() - date.today()
             self.t = int(delta.days + 1) / 365
         self.r = r
@@ -36,7 +37,7 @@ class BlackScholes:
         if sigma is None:
             sigma = self.sigma
 
-        return (np.log(s / k) + (r + sigma ** 2 / 2.) * t) / (sigma * np.sqrt(t))
+        return (np.log(s / k) + (r + sigma ** 2 / 2) * t) / (sigma * np.sqrt(t))
 
     def _calc_d2(self, s=None, k=None, t=None, r=None, sigma=None):
         if s is None:
@@ -84,7 +85,7 @@ class BlackScholes:
         d2 = self._calc_d2(s, k, t, r, sigma)
         return k * np.exp(-r * t) * norm.cdf(-d2) - s * norm.cdf(-d1)
 
-    def implied_vol(self, option_price, s=None, k=None, t=None, r=None, sigma0=0.30):
+    def implied_vol_call(self, s=None, k=None, t=None, r=None, sigma0=0.30, option_price=10):
         if s is None:
             s = self.s
         if k is None:
@@ -99,6 +100,27 @@ class BlackScholes:
 
         for i in range(max_iterations):
             fx = self.call(s, k, t, r, sigma) - option_price
+            if abs(fx) < precision:
+                return sigma
+            vega = self.vega(s, k, t, r, sigma)
+            sigma = sigma - fx / vega
+        return sigma
+
+    def implied_vol_put(self, s=None, k=None, t=None, r=None, sigma0=0.30, option_price=10):
+        if s is None:
+            s = self.s
+        if k is None:
+            k = self.k
+        if t is None:
+            t = self.t
+        if r is None:
+            r = self.r
+        sigma = sigma0
+        max_iterations = 100000
+        precision = 0.01
+
+        for i in range(max_iterations):
+            fx = self.put(s, k, t, r, sigma) - option_price
             if abs(fx) < precision:
                 return sigma
             vega = self.vega(s, k, t, r, sigma)
@@ -371,11 +393,38 @@ class BlackScholes:
         plt.plot(spots, deltas)
         plt.show()
 
-    def plot_iv(self, ticker):
-        return
+    def plot_iv_call(self, ticker, t):
+        from data.options_data import options_chain
+
+        chain = options_chain(ticker, "2023-02-03", "c")
+        # print(chain.to_string())
+        strikes = []
+        ivs = []
+        for index, row in chain.iterrows():
+            if 80 < row['strike'] < 120:
+                strikes.append(row['strike'])
+                iv = self.implied_vol_call(108, row['strike'], 30/365, 0.04, 0.8, row['lastPrice'])
+                ivs.append(iv)
+                print(row['strike'], row['lastPrice'], iv)
+
+        plt.title(f'{ticker} IV')
+        plt.plot(strikes, ivs)
+        plt.show()
 
 
 if __name__ == "__main__":
-    bs = BlackScholes('TSLA', 125, "10-02-2023", 0.04, 0.8535)
+    bs = BlackScholes()
 
-    print(bs.call())
+    # print(bs.implied_vol_call(108, 50, 30 / 365, 0.04, 0.7, 55))
+    # print(bs.implied_vol_call(108, 55, 30 / 365, 0.04, 0.7, 68))
+    # print(bs.implied_vol_call(108, 60, 30 / 365, 0.04, 0.7, 49))
+    # print(bs.implied_vol_call(108, 70, 30 / 365, 0.04, 0.7, 39))
+    # print(bs.implied_vol_call(108, 80, 30 / 365, 0.04, 0.7, 24))
+    # print(bs.implied_vol_call(108, 85, 30 / 365, 0.04, 0.7, 24))
+    # print(bs.implied_vol_call(108, 90, 30 / 365, 0.04, 0.7, 22))
+    # print(bs.implied_vol_call(108, 95, 30 / 365, 0.04, 0.7, 19))
+    # print(bs.implied_vol_call(108, 100, 30 / 365, 0.04, 0.7, 15))
+    # print(bs.implied_vol_call(108, 105, 30 / 365, 0.04, 0.7, 12))
+    # print(bs.implied_vol_call(108, 110, 30 / 365, 0.04, 0.7, 10))
+    # print(bs.implied_vol_call(108, 200, 30 / 365, 0.04, 0.7, 0.21))
+    bs.plot_iv_call('TSLA', 0)
