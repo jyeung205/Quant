@@ -1,4 +1,5 @@
 from datetime import date, datetime
+import datetime as dt
 
 import matplotlib.pyplot as plt
 import numpy as np
@@ -6,14 +7,17 @@ import pandas as pd
 from scipy.stats import norm
 import yfinance as yf
 
+from data.options_data import options_chain_by_expiry, options_chain_by_strike, get_options_grid
+
 
 class BlackScholes:
 
     def __init__(self, s=None, k=None, t=None, r=None,
                  sigma=None):
         if type(s) == str:
-            data = yf.download(tickers=s, period='1m', interval='1m')  # todo check if this is live price
-            self.s = data['Close'][-1]
+            self.s = yf.download(tickers=s,
+                                 period='1d',
+                                 interval='1m')['Close'][-1]
         else:
             self.s = s
         self.k = k
@@ -95,7 +99,7 @@ class BlackScholes:
         if r is None:
             r = self.r
         sigma = sigma0
-        max_iterations = 100000
+        max_iterations = 10000
         precision = 0.01
 
         for i in range(max_iterations):
@@ -393,22 +397,66 @@ class BlackScholes:
         plt.plot(spots, deltas)
         plt.show()
 
-    def plot_iv_call(self, ticker, t):
-        from data.options_data import options_chain
-
-        chain = options_chain(ticker, "2023-02-03", "c")
-        # print(chain.to_string())
+    def plot_iv_call(self, ticker, expiry):
+        chain = options_chain_by_expiry(ticker, expiry, "c")
         strikes = []
         ivs = []
+        s = yf.download(tickers=ticker,
+                        period='1d',
+                        interval='1m')['Close'][-1]
         for index, row in chain.iterrows():
-            if 80 < row['strike'] < 120:
-                strikes.append(row['strike'])
-                iv = self.implied_vol_call(108, row['strike'], 30/365, 0.04, 0.8, row['lastPrice'])
-                ivs.append(iv)
-                print(row['strike'], row['lastPrice'], iv)
+            strikes.append(row['strike'])
+            iv = self.implied_vol_call(s, row['strike'], row['daysToExpiration'] / 365, 0.04, 0.5,
+                                       0.5 * (row['bid'] + row['ask']))
+            ivs.append(iv)
 
         plt.title(f'{ticker} IV')
         plt.plot(strikes, ivs)
+        plt.show()
+
+    def plot_iv_put(self):
+        return
+
+    def plot_iv_term_structure_call(self, ticker, strike):
+        chain = options_chain_by_strike(ticker, strike, "c")
+        expirations = []
+        ivs = []
+        s = yf.download(tickers=ticker,
+                        period='1d',
+                        interval='1m')['Close'][-1]
+        for index, row in chain.iterrows():
+            expirations.append(row['expiration'])
+            iv = self.implied_vol_call(s, strike, row['daysToExpiration'] / 365, 0.04, 0.5,
+                                       0.5 * (row['bid'] + row['ask']))
+            ivs.append(iv)
+
+        plt.title(f'{ticker} IV Term Structure, Strike={strike}')
+        plt.plot(expirations, ivs)
+        plt.xticks(rotation=45)
+        plt.show()
+
+    def plot_iv_surface(self, ticker):
+
+        chain = get_options_grid(ticker, 'c')
+        # chain.interpolate(inplace=True, axis=0)
+        chain.fillna(method='ffill', inplace=True)
+
+        fig = plt.figure(figsize=(10, 8))
+
+        ax = fig.add_subplot(111, projection='3d')
+
+        x, y, z = chain.columns.values, chain.index.values, chain.values
+
+        X, Y = np.meshgrid(x, y)
+
+        # set labels
+        ax.set_xlabel('Days to expiration')
+        ax.set_ylabel('Strike price')
+        ax.set_zlabel('Implied volatility')
+        ax.set_title('Call implied volatility surface')
+
+        # plot
+        ax.plot_surface(X, Y, z)  # todo cannot plot with dates as x-axis
         plt.show()
 
 
@@ -427,4 +475,6 @@ if __name__ == "__main__":
     # print(bs.implied_vol_call(108, 105, 30 / 365, 0.04, 0.7, 12))
     # print(bs.implied_vol_call(108, 110, 30 / 365, 0.04, 0.7, 10))
     # print(bs.implied_vol_call(108, 200, 30 / 365, 0.04, 0.7, 0.21))
-    bs.plot_iv_call('TSLA', 0)
+    # bs.plot_iv_call('TSLA', "2023-02-03")
+    bs.plot_iv_surface('TSLA')
+    # bs.plot_iv_term_structure_call('TSLA', 110)
