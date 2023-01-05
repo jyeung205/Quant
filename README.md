@@ -7,5 +7,7 @@
 ### Time Series
 - ARIMA
 - GARCH
+- Kalman Filter
 
-### 
+### Mean Reversion
+- Johansen test
