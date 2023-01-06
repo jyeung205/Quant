@@ -446,6 +446,7 @@ class BlackScholes:
         ax = fig.add_subplot(111, projection='3d')
 
         x, y, z = chain.columns.values, chain.index.values, chain.values
+        y = [i for i in range(len(chain.index.values))]
 
         X, Y = np.meshgrid(x, y)
 
