@@ -11,3 +11,10 @@
 
 ### Mean Reversion
 - Johansen test
+
+### Linear Algebra
+- Positive Definite
+- Covariance Matrixes
+- Eigenvalues and vectors
+- Diagonalisable
+- Inverse

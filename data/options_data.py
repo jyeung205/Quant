@@ -2,6 +2,7 @@ import numpy as np
 import pandas as pd
 import yfinance as yf
 import datetime as dt
+from datetime import datetime
 
 
 def options_chain_by_expiry(ticker, expiry, type):
@@ -66,6 +67,7 @@ def get_options_grid(ticker, type):
             if strike in strikes:
                 chains[strike][expiration] = 0.5*(row['bid']+row['ask'])
     chains.fillna(method='ffill', inplace=True)
+    # chain.interpolate(inplace=True, method='ffill')
     # chains.dropna(thresh=4, inplace=True)
     return chains
 
