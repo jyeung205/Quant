@@ -9,7 +9,9 @@ from scipy.stats import norm
 import yfinance as yf
 from scipy.optimize import fsolve
 
-from data.options_data import options_chain_by_expiry, options_chain_by_strike, get_options_grid
+from data.options_data import get_options_chain_by_expiry, get_options_chain_by_strike, get_options_grid
+
+RISK_FREE_RATE = 0.04
 
 
 class BlackScholes:
@@ -24,11 +26,13 @@ class BlackScholes:
         if type(t) == str:
             delta = datetime.strptime(t, '%Y-%m-%d').date() - date.today()
             self.t = int(delta.days + 1) / 365
+            self.expiry = t
 
         if type(s) == str:
             self.s = yf.download(tickers=s,
                                  period='1d',
                                  interval='1m')['Close'][-1]
+            self.ticker = s
 
     def _config_inputs(self, s, k, t, r, sigma):
         if s is None:
@@ -91,8 +95,9 @@ class BlackScholes:
         sigma = fsolve(f, sigma0)[0]
         return sigma
 
-    def forward(self):
-        return self.s - self.k * np.exp(-self.r * self.t)
+    def forward(self, s, k, t, r):
+        s, k, t, r, _ = self._config_inputs(s, k, t, r, None)
+        return s - k * np.exp(-r * t)
 
     def delta_call(self, s=None, k=None, t=None, r=None, sigma=None):
         s, k, t, r, sigma = self._config_inputs(s, k, t, r, sigma)
@@ -101,8 +106,8 @@ class BlackScholes:
 
     def delta_put(self, s=None, k=None, t=None, r=None, sigma=None):
         s, k, t, r, sigma = self._config_inputs(s, k, t, r, sigma)
-        d2 = self._calc_d2(s, k, t, r, sigma)
-        return norm.cdf(d2)
+        d1 = self._calc_d1(s, k, t, r, sigma)
+        return norm.cdf(d1) - 1
 
     def gamma(self, s=None, k=None, t=None, r=None, sigma=None):
         s, k, t, r, sigma = self._config_inputs(s, k, t, r, sigma)
@@ -112,8 +117,7 @@ class BlackScholes:
     def vega(self, s=None, k=None, t=None, r=None, sigma=None):
         s, k, t, r, sigma = self._config_inputs(s, k, t, r, sigma)
         d1 = self._calc_d1(s, k, t, r, sigma)
-        vega = s * np.sqrt(t) * norm.pdf(d1)
-        return vega
+        return s * np.sqrt(t) * norm.pdf(d1)
 
     def theta_call(self, s=None, k=None, t=None, r=None, sigma=None):
         s, k, t, r, sigma = self._config_inputs(s, k, t, r, sigma)
@@ -147,6 +151,9 @@ class BlackScholes:
         deltas = [self.delta_call(s, k, t, r, sigma) for s in spots]
         plt.figure()
         plt.title('Delta - Call')
+        plt.xlabel('Spot')
+        plt.ylabel('Delta')
+        plt.grid()
         plt.plot(spots, deltas)
         plt.show()
 
@@ -156,6 +163,8 @@ class BlackScholes:
         deltas = [self.delta_put(s, k, t, r, sigma) for s in spots]
         plt.figure()
         plt.title('Delta - Put')
+        plt.xlabel('Spot')
+        plt.ylabel('Delta')
         plt.plot(spots, deltas)
         plt.show()
 
@@ -165,6 +174,8 @@ class BlackScholes:
         deltas = [self.gamma(s, k, t, r, sigma) for s in spots]
         plt.figure()
         plt.title('Gamma')
+        plt.xlabel('Spot')
+        plt.ylabel('Gamma')
         plt.plot(spots, deltas)
         plt.show()
 
@@ -174,6 +185,8 @@ class BlackScholes:
         deltas = [self.vega(s, k, t, r, sigma) for s in spots]
         plt.figure()
         plt.title('Vega')
+        plt.xlabel('Spot')
+        plt.ylabel('Vega')
         plt.plot(spots, deltas)
         plt.show()
 
@@ -183,6 +196,8 @@ class BlackScholes:
         deltas = [self.theta_call(s, k, t, r, sigma) for s in spots]
         plt.figure()
         plt.title('Theta - Call')
+        plt.xlabel('Spot')
+        plt.ylabel('Theta')
         plt.plot(spots, deltas)
         plt.show()
 
@@ -192,6 +207,8 @@ class BlackScholes:
         deltas = [self.theta_put(s, k, t, r, sigma) for s in spots]
         plt.figure()
         plt.title('Theta - Put')
+        plt.xlabel('Spot')
+        plt.ylabel('Theta')
         plt.plot(spots, deltas)
         plt.show()
 
@@ -201,6 +218,8 @@ class BlackScholes:
         deltas = [self.rho_call(s, k, t, r, sigma) for s in spots]
         plt.figure()
         plt.title('Rho - Call')
+        plt.xlabel('Spot')
+        plt.ylabel('Rho')
         plt.plot(spots, deltas)
         plt.show()
 
@@ -210,11 +229,17 @@ class BlackScholes:
         deltas = [self.rho_put(s, k, t, r, sigma) for s in spots]
         plt.figure()
         plt.title('Rho - Put')
+        plt.xlabel('Spot')
+        plt.ylabel('Rho')
         plt.plot(spots, deltas)
         plt.show()
 
-    def plot_iv_call(self, ticker, expiry):
-        chain = options_chain_by_expiry(ticker, expiry, "c")
+    def plot_iv_call(self, ticker=None, expiry=None):
+        if ticker is None:
+            ticker = self.ticker
+        if expiry is None:
+            expiry = self.expiry
+        chain = get_options_chain_by_expiry(ticker, expiry, "c")
         strikes = []
         ivs = []
         s = yf.download(tickers=ticker,
@@ -222,19 +247,45 @@ class BlackScholes:
                         interval='1m')['Close'][-1]
         for index, row in chain.iterrows():
             strikes.append(row['strike'])
-            iv = self.iv_call(s, row['strike'], row['daysToExpiration'] / 365, 0.04, 0.5,
+            iv = self.iv_call(s, row['strike'], row['daysToExpiration'] / 365, RISK_FREE_RATE, 0.5,
                               0.5 * (row['bid'] + row['ask']))
             ivs.append(iv)
 
-        plt.title(f'{ticker} IV')
+        plt.title(f'{ticker} IV, {expiry} - Call')
+        plt.xlabel('Spot')
+        plt.ylabel('Implied Volatility')
         plt.plot(strikes, ivs)
         plt.show()
 
-    def plot_iv_put(self):
-        return
+    def plot_iv_put(self, ticker=None, expiry=None):
+        if ticker is None:
+            ticker = self.ticker
+        if expiry is None:
+            expiry = self.expiry
+        chain = get_options_chain_by_expiry(ticker, expiry, "p")
+        strikes = []
+        ivs = []
+        s = yf.download(tickers=ticker,
+                        period='1d',
+                        interval='1m')['Close'][-1]
+        for index, row in chain.iterrows():
+            strikes.append(row['strike'])
+            iv = self.iv_put(s, row['strike'], row['daysToExpiration'] / 365, RISK_FREE_RATE, 0.5,
+                             0.5 * (row['bid'] + row['ask']))
+            ivs.append(iv)
 
-    def plot_iv_term_structure_call(self, ticker, strike):
-        chain = options_chain_by_strike(ticker, strike, "c")
+        plt.title(f'{ticker} IV, {expiry} - Put')
+        plt.xlabel('Spot')
+        plt.ylabel('Implied Volatility')
+        plt.plot(strikes, ivs)
+        plt.show()
+
+    def plot_iv_term_structure_call(self, ticker=None, strike=None):
+        if ticker is None:
+            ticker = self.ticker
+        if strike is None:
+            strike = self.k
+        chain = get_options_chain_by_strike(ticker, strike, "c")
         expirations = []
         ivs = []
         s = yf.download(tickers=ticker,
@@ -242,17 +293,44 @@ class BlackScholes:
                         interval='1m')['Close'][-1]
         for index, row in chain.iterrows():
             expirations.append(row['expiration'])
-            iv = self.iv_call(s, strike, row['daysToExpiration'] / 365, 0.04, 0.5,
+            iv = self.iv_call(s, strike, row['daysToExpiration'] / 365, RISK_FREE_RATE, 0.5,
                               0.5 * (row['bid'] + row['ask']))
             ivs.append(iv)
 
-        plt.title(f'{ticker} IV Term Structure, Strike={strike}')
+        plt.title(f'{ticker} IV Term Structure Call, Strike={strike}')
+        plt.xlabel('Expiration')
+        plt.ylabel('Implied Volatility')
         plt.plot(expirations, ivs)
         plt.xticks(rotation=45)
         plt.show()
 
-    def plot_iv_surface(self, ticker):
+    def plot_iv_term_structure_put(self, ticker=None, strike=None):
+        if ticker is None:
+            ticker = self.ticker
+        if strike is None:
+            strike = self.k
+        chain = get_options_chain_by_strike(ticker, strike, "p")
+        expirations = []
+        ivs = []
+        s = yf.download(tickers=ticker,
+                        period='1d',
+                        interval='1m')['Close'][-1]
+        for index, row in chain.iterrows():
+            expirations.append(row['expiration'])
+            iv = self.iv_put(s, strike, row['daysToExpiration'] / 365, RISK_FREE_RATE, 0.5,
+                             0.5 * (row['bid'] + row['ask']))
+            ivs.append(iv)
 
+        plt.title(f'{ticker} IV Term Structure Put, Strike={strike}')
+        plt.xlabel('Expiration')
+        plt.ylabel('Implied Volatility')
+        plt.plot(expirations, ivs)
+        plt.xticks(rotation=45)
+        plt.show()
+
+    def plot_iv_surface(self, ticker=None):
+        if ticker is None:
+            ticker = self.ticker
         chain = get_options_grid(ticker, 'c')
         s = yf.download(tickers=ticker,
                         period='1d',
@@ -261,7 +339,7 @@ class BlackScholes:
         for expiry in chain.index:
             for strike in chain.columns:
                 price = chain[strike][expiry]
-                iv = self.iv_call(s, strike, expiry, 0.04, 0.5, price)
+                iv = self.iv_call(s, strike, expiry, RISK_FREE_RATE, 0.5, price)
                 chain[strike][expiry] = iv
 
         fig = plt.figure(figsize=(10, 8))
@@ -284,14 +362,15 @@ class BlackScholes:
 
 
 if __name__ == "__main__":
-    bs = BlackScholes(110, 120, 30 / 365, 0.04, 0.60)
-    print(bs.plot_gamma())
+    bs = BlackScholes('TSLA', 110, '2023-02-03', RISK_FREE_RATE, 0.60)
+    # bs.plot_delta_call()
+    # bs.plot_iv_call()
+    bs.plot_iv_put()
+    # bs.plot_delta_put()
+    # bs.plot_gamma()
+    # bs.plot_vega()
+    # bs.plot_theta_call()
+    # bs.plot_theta_put()
+    # bs.plot_rho_call()
+    # bs.plot_rho_put()
 
-    bs = BlackScholes()
-    print(bs.plot_gamma(110, 120, 30 / 365, 0.04, 0.6))
-
-    bs = BlackScholes('TSLA', 120, '2023-02-10', 0.04, 0.60)
-    print(bs.plot_gamma())
-
-    bs = BlackScholes()
-    print(bs.plot_gamma('TSLA', 120, '2023-02-10', 0.04, 0.6))

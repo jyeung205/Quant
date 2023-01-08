@@ -5,7 +5,7 @@ import datetime as dt
 from datetime import datetime
 
 
-def options_chain_by_expiry(ticker, expiry, type):
+def get_options_chain_by_expiry(ticker, expiry, type):
     asset = yf.Ticker(ticker)
     opt = asset.option_chain(expiry)
 
@@ -24,7 +24,7 @@ def options_chain_by_expiry(ticker, expiry, type):
     return chain
 
 
-def options_chain_by_strike(ticker, strike, type):
+def get_options_chain_by_strike(ticker, strike, type):
     asset = yf.Ticker(ticker)
     expirations = asset.options
     chains = pd.DataFrame()
@@ -69,35 +69,6 @@ def get_options_grid(ticker, type):
     chains.fillna(method='ffill', inplace=True)
     # chain.interpolate(inplace=True, method='ffill')
     # chains.dropna(thresh=4, inplace=True)
-    return chains
-
-
-def option_chains_pyquantnews(ticker):
-    """
-    default code given by pyquant news
-    """
-    asset = yf.Ticker(ticker)
-    expirations = asset.options
-
-    chains = pd.DataFrame()
-
-    for expiration in expirations:
-        # tuple of two dataframes
-        opt = asset.option_chain(expiration)
-
-        calls = opt.calls
-        calls['optionType'] = "call"
-
-        puts = opt.puts
-        puts['optionType'] = "put"
-
-        chain = pd.concat([calls, puts])
-        chain['expiration'] = pd.to_datetime(expiration) + pd.DateOffset(hours=23, minutes=59, seconds=59)
-
-        chains = pd.concat([chains, chain])
-
-    chains["daysToExpiration"] = (chains.expiration - dt.datetime.today()).dt.days + 1
-
     return chains
 
 
