@@ -1,10 +1,7 @@
 from datetime import date, datetime
-import datetime as dt
-import time
 
 import matplotlib.pyplot as plt
 import numpy as np
-import pandas as pd
 from scipy.stats import norm
 import yfinance as yf
 from scipy.optimize import fsolve

@@ -1,7 +1,5 @@
-import numpy as np
 import pandas as pd
 import yfinance as yf
-import datetime as dt
 from datetime import datetime
 
 
@@ -19,7 +17,7 @@ def get_options_chain_by_expiry(ticker, expiry, type):
         raise Exception('Input Correct Option type')
 
     chain['expiration'] = pd.to_datetime(expiry) + pd.DateOffset(hours=23, minutes=59, seconds=59)
-    chain["daysToExpiration"] = (chain.expiration - dt.datetime.today()).dt.days + 1
+    chain["daysToExpiration"] = (chain.expiration - datetime.today()).dt.days + 1
     chain.sort_values('strike', inplace=True)
     return chain
 
@@ -44,7 +42,7 @@ def get_options_chain_by_strike(ticker, strike, type):
         chain['expiration'] = pd.to_datetime(expiration) + pd.DateOffset(hours=23, minutes=59, seconds=59)
         chains = pd.concat([chains, chain])
 
-    chains["daysToExpiration"] = (chains.expiration - dt.datetime.today()).dt.days + 1
+    chains["daysToExpiration"] = (chains.expiration - datetime.today()).dt.days + 1
     chains.sort_values('expiration', inplace=True)
     return chains
 

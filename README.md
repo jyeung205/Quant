@@ -18,3 +18,4 @@
 - Eigenvalues and vectors
 - Diagonalisable
 - Inverse
+- Returns matrix correlation/decomposition
