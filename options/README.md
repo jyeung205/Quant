@@ -29,10 +29,10 @@ d_2 = d_1 - \sigma \sqrt{T-t}.
 $$
 
 ### Implied Volatility
-| ![](../figures/tsla_iv.png) | ![](../figures/TSLA IV Term Structure 110.png) |
+| ![](../figures/tsla_iv.png) | ![](../figures/tsla_term_struct.png) |
 |:---------------------------:|:----------------------------------------------:|
 
-![](../figures/TSLA IV Surface.png) 
+![](../figures/tsla_iv_surface.png) 
 
 
 ### Greeks
