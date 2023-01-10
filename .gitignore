@@ -185,3 +185,5 @@ fabric.properties
 # .idea
 
 notebooks/.ipynb_checkpoints
+/data/crypto_data.db
+/data/stock_data.db
