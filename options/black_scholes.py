@@ -6,7 +6,7 @@ from scipy.stats import norm
 import yfinance as yf
 from scipy.optimize import fsolve
 
-from data.options_data import get_options_chain_by_expiry, get_options_chain_by_strike, get_options_grid
+from data_utils.options_data import get_options_chain_by_expiry, get_options_chain_by_strike, get_options_grid
 
 RISK_FREE_RATE = 0.04
 

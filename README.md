@@ -1,12 +1,23 @@
 # All Things related to Quant Finance
 
 ### Data
-- get and store data (done before)
+- get and store stock data (done)
+- get options data (done)
+- get and store crypto data
 
 ### Options
-- Greeks
-- Vol Surfaces
-- Delta hedging
+- Black-Scholes (done)
+- Monte Carlo (1/2)
+- Binomial (1/2)
+- greeks using finite difference (todo)
+
+### Portfolio
+- VaR
+- Expected Shortfall
+- Efficient Frontier
+- Correlation (done before)
+
+# Notebooks
 
 ### Time Series
 - ARIMA
@@ -25,9 +36,7 @@
 - Returns matrix correlation/decomposition
 - PCA
 
-### Portfolio
-- VaR
-- Expected Shortfall
-- Efficient Frontier
-- Correlation (done before)
-- 
+
+Trading Ideas
+- Find arbitrage opportunities between crypto exchanges (done before)
+- Simple trading bot using docker (following from github)

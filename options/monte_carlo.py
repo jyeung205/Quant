@@ -27,6 +27,8 @@ class MonteCarlo:
         option_price = np.mean(payoffs) * np.exp(-r * t)
         return option_price
 
+    # TODO greeks using finite difference
+
 
 if __name__ == "__main__":
     mc = MonteCarlo()

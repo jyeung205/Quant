@@ -38,13 +38,13 @@ class Data:
         tickers = [ticker[:-1] for ticker in tickers]  # Remove \n from each ticker
 
         if index == "S&P500":
-            with open("tickers/sp500tickers.pickle", "wb") as f:
+            with open("../data/tickers/sp500tickers.pickle", "wb") as f:
                 pickle.dump(tickers, f)
         if index == "S&P100":
-            with open("tickers/sp100tickers.pickle", "wb") as f:
+            with open("../data/tickers/sp100tickers.pickle", "wb") as f:
                 pickle.dump(tickers, f)
         if index == "NASDAQ 100":
-            with open("tickers/nasdaq100tickers.pickle", "wb") as f:
+            with open("../data/tickers/nasdaq100tickers.pickle", "wb") as f:
                 pickle.dump(tickers, f)
 
         print(tickers)
@@ -69,16 +69,16 @@ class Data:
         """
         Only run on trading days. Function will add a repeated date if executed on a non-trading day.
         """
-        conn = sqlite3.connect("stock_data.db")
+        conn = sqlite3.connect("../data/stock_data.db")
         c = conn.cursor()
         no_data_tickers = []
 
-        if type(tickers) == str:  # if input is str and not a list
+        if type(tickers) == str:  # If input is str and not a list
             tickers = [tickers]
 
         for ticker in tickers:
             c.execute(f"SELECT count(name) FROM sqlite_master WHERE type='table' AND name='{ticker}'")
-            if c.fetchone()[0] == 1:  # If table exists
+            if c.fetchone()[0] == 1:  # If table already exists in db
                 for date in conn.execute(f"SELECT DATE FROM '{ticker}' ORDER BY DATE DESC LIMIT 1"):  # get last date
                     if date[0] == end:
                         print(f"{ticker} is up to date")
@@ -88,7 +88,7 @@ class Data:
                         print(f"Downloading Data for {ticker} from {next_date_in_db} to {end}")
                         df = self.get_stock_data(ticker, next_date_in_db, end)
                         df.to_sql(ticker, conn, schema=None, if_exists="append")
-            else:  # If table does not exist
+            else:  # If table does not exist in db
                 df = self.get_stock_data(ticker, next_date_in_db, end)
                 print(f"Downloading Data for {ticker} from {start} to {end}")
                 df.to_sql(ticker, conn, schema=None, if_exists="replace")
@@ -98,7 +98,7 @@ class Data:
         Delete last row in table in cases of duplicated dates
         :return:
         """
-        conn = sqlite3.connect("stock_data.db")
+        conn = sqlite3.connect("../data/stock_data.db")
         for ticker in conn.execute("select name from sqlite_master where type='table' "):
             print("Deleting latest date for", ticker[0])
             conn.execute(f"DELETE FROM '{ticker[0]}' WHERE Date = (SELECT MAX(Date) FROM '{ticker[0]}')")
