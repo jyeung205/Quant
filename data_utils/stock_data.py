@@ -2,14 +2,21 @@ import requests
 import bs4 as bs
 import pickle
 import datetime
+from datetime import datetime, timedelta
 import pandas as pd
 import sqlite3
 
 from alpha_vantage.timeseries import TimeSeries
 
 
-class Data:
-    yesterday = (datetime.datetime.today() - datetime.timedelta(days=1)).strftime('%Y-%m-%d')
+class StockData:
+    yesterday = (datetime.today() - timedelta(days=1)).strftime('%Y-%m-%d')
+
+    def __init__(self):
+        self.conn = sqlite3.connect("../data/stock_data.db")
+        self.c = self.conn.cursor()
+        self.app = TimeSeries("LHE90GZROAECNZ96",
+                              output_format='pandas')  # TODO add alpha vantagae api key to env variables
 
     def save_index_tickers(self, index='S&P 100'):
         """
@@ -51,8 +58,8 @@ class Data:
         return tickers
 
     def get_stock_data(self, ticker, start, end):
-        app = TimeSeries("LHE90GZROAECNZ96", output_format='pandas')  # TODO add alpha vantagae api key to env variables
-        df = app.get_daily_adjusted(ticker, 'full')[0]
+
+        df = self.app.get_daily_adjusted(ticker, 'full')[0]
         df.sort_index(inplace=True)
         new_df = pd.concat([df['2. high'][start:end],
                             df['3. low'][start:end],
@@ -65,33 +72,31 @@ class Data:
         new_df.index.name = "Date"
         return new_df
 
+    def download_stock_data(self, ticker, start, end):
+        self.c.execute(f"SELECT count(name) FROM sqlite_master WHERE type='table' AND name='{ticker}'")
+        if self.c.fetchone()[0] == 1:  # If table already exists in db
+            for date in self.conn.execute(f"SELECT DATE FROM '{ticker}' ORDER BY DATE DESC LIMIT 1"):  # get last date
+                if date[0] == end:
+                    print(f"{ticker} is up to date")
+                else:
+                    next_date_in_db = datetime.strptime(date[0], "%Y-%m-%d") + timedelta(days=1)
+                    next_date_in_db = next_date_in_db.strftime("%Y-%m-%d")
+                    print(f"Downloading Data for {ticker} from {next_date_in_db} to {end}")
+                    df = self.get_stock_data(ticker, next_date_in_db, end)
+                    df.to_sql(ticker, self.conn, schema=None, if_exists="append")
+        else:  # If table does not exist in db
+            print(f"Downloading Data for {ticker} from {start} to {end}")
+            df = self.get_stock_data(ticker, start, end)
+            df.to_sql(ticker, self.conn, schema=None, if_exists="replace")
+
     def download_many_stock_data(self, tickers, start="2000-01-01", end=yesterday):
         """
         Only run on trading days. Function will add a repeated date if executed on a non-trading day.
         """
-        conn = sqlite3.connect("../data/stock_data.db")
-        c = conn.cursor()
         no_data_tickers = []
 
-        if type(tickers) == str:  # If input is str and not a list
-            tickers = [tickers]
-
         for ticker in tickers:
-            c.execute(f"SELECT count(name) FROM sqlite_master WHERE type='table' AND name='{ticker}'")
-            if c.fetchone()[0] == 1:  # If table already exists in db
-                for date in conn.execute(f"SELECT DATE FROM '{ticker}' ORDER BY DATE DESC LIMIT 1"):  # get last date
-                    if date[0] == end:
-                        print(f"{ticker} is up to date")
-                    else:
-                        next_date_in_db = datetime.datetime.strptime(date[0], "%Y-%m-%d") + datetime.timedelta(days=1)
-                        next_date_in_db = next_date_in_db.strftime("%Y-%m-%d")
-                        print(f"Downloading Data for {ticker} from {next_date_in_db} to {end}")
-                        df = self.get_stock_data(ticker, next_date_in_db, end)
-                        df.to_sql(ticker, conn, schema=None, if_exists="append")
-            else:  # If table does not exist in db
-                df = self.get_stock_data(ticker, next_date_in_db, end)
-                print(f"Downloading Data for {ticker} from {start} to {end}")
-                df.to_sql(ticker, conn, schema=None, if_exists="replace")
+            self.download_stock_data(ticker, start, end)
 
     def delete_latest_date(self):
         """
@@ -103,9 +108,11 @@ class Data:
             print("Deleting latest date for", ticker[0])
             conn.execute(f"DELETE FROM '{ticker[0]}' WHERE Date = (SELECT MAX(Date) FROM '{ticker[0]}')")
         conn.commit()
+        
+    def read_stock_data(self, ticker):
+        return
 
 
 if __name__ == "__main__":
-    data = Data()
+    data = StockData()
     data.download_many_stock_data(['AAL'])
-

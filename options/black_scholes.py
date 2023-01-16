@@ -6,7 +6,8 @@ from scipy.stats import norm
 import yfinance as yf
 from scipy.optimize import fsolve
 
-from data_utils.options_data import get_options_chain_by_expiry, get_options_chain_by_strike, get_options_grid
+from data_utils.options_data import OptionsData
+
 
 RISK_FREE_RATE = 0.04
 
@@ -15,6 +16,7 @@ class BlackScholes:
 
     def __init__(self, s=None, k=None, t=None, r=None,
                  sigma=None):
+        self.options_data = OptionsData()
         self.s = s
         self.k = k
         self.t = t
@@ -236,7 +238,7 @@ class BlackScholes:
             ticker = self.ticker
         if expiry is None:
             expiry = self.expiry
-        chain = get_options_chain_by_expiry(ticker, expiry, "c")
+        chain = self.options_data.get_options_chain_by_expiry(ticker, expiry, "c")
         strikes = []
         ivs = []
         s = yf.download(tickers=ticker,
@@ -259,7 +261,7 @@ class BlackScholes:
             ticker = self.ticker
         if expiry is None:
             expiry = self.expiry
-        chain = get_options_chain_by_expiry(ticker, expiry, "p")
+        chain = self.options_data.get_options_chain_by_expiry(ticker, expiry, "p")
         strikes = []
         ivs = []
         s = yf.download(tickers=ticker,
@@ -282,7 +284,7 @@ class BlackScholes:
             ticker = self.ticker
         if strike is None:
             strike = self.k
-        chain = get_options_chain_by_strike(ticker, strike, "c")
+        chain = self.options_data.get_options_chain_by_strike(ticker, strike, "c")
         expirations = []
         ivs = []
         s = yf.download(tickers=ticker,
@@ -306,7 +308,7 @@ class BlackScholes:
             ticker = self.ticker
         if strike is None:
             strike = self.k
-        chain = get_options_chain_by_strike(ticker, strike, "p")
+        chain = self.options_data.get_options_chain_by_strike(ticker, strike, "p")
         expirations = []
         ivs = []
         s = yf.download(tickers=ticker,
@@ -328,7 +330,7 @@ class BlackScholes:
     def plot_iv_surface(self, ticker=None):
         if ticker is None:
             ticker = self.ticker
-        chain = get_options_grid(ticker, 'c')
+        chain = self.options_data.get_options_grid(ticker, 'c')
         s = yf.download(tickers=ticker,
                         period='1d',
                         interval='1m')['Close'][-1]
