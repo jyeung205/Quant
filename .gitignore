@@ -187,3 +187,4 @@ fabric.properties
 notebooks/.ipynb_checkpoints
 /data/crypto_data.db
 /data/stock_data.db
+/data/stock_data copy.db

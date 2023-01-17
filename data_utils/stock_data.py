@@ -5,6 +5,7 @@ import datetime
 from datetime import datetime, timedelta
 import pandas as pd
 import sqlite3
+import time
 
 from alpha_vantage.timeseries import TimeSeries
 
@@ -16,7 +17,7 @@ class StockData:
         self.conn = sqlite3.connect("../data/stock_data.db")
         self.c = self.conn.cursor()
         self.app = TimeSeries("LHE90GZROAECNZ96",
-                              output_format='pandas')  # TODO add alpha vantagae api key to env variables
+                              output_format='pandas')  # TODO add alpha vantagae api key to env variables, yahoo finance cannot referance start date
 
     def save_index_tickers(self, index='S&P 100'):
         """
@@ -57,22 +58,16 @@ class StockData:
         print(tickers)
         return tickers
 
-    def get_stock_data(self, ticker, start, end):
-
+    def get_stock_data(self, ticker, start='2000-01-01', end=yesterday):
         df = self.app.get_daily_adjusted(ticker, 'full')[0]
         df.sort_index(inplace=True)
-        new_df = pd.concat([df['2. high'][start:end],
-                            df['3. low'][start:end],
-                            df['1. open'][start:end],
-                            df['4. close'][start:end],
-                            df['6. volume'][start:end],
-                            df['5. adjusted close'][start:end]], axis=1)
-        new_df.columns = ['High', 'Low', 'Open', 'Close', 'Volume', 'Adj Close']
-        new_df.index = new_df.index.date
-        new_df.index.name = "Date"
-        return new_df
+        df = df[['1. open', '2. high', '3. low', '4. close', '5. adjusted close', '6. volume']][start:end]
+        df.columns = ['open', 'high', 'low', 'close', 'adj close', 'volume']
+        df.index = df.index.date
+        df.index.name = "Date"
+        return df
 
-    def download_stock_data(self, ticker, start, end):
+    def download_stock_data(self, ticker, start='2000-01-01', end=yesterday):
         self.c.execute(f"SELECT count(name) FROM sqlite_master WHERE type='table' AND name='{ticker}'")
         if self.c.fetchone()[0] == 1:  # If table already exists in db
             for date in self.conn.execute(f"SELECT DATE FROM '{ticker}' ORDER BY DATE DESC LIMIT 1"):  # get last date
@@ -89,30 +84,38 @@ class StockData:
             df = self.get_stock_data(ticker, start, end)
             df.to_sql(ticker, self.conn, schema=None, if_exists="replace")
 
-    def download_many_stock_data(self, tickers, start="2000-01-01", end=yesterday):
+    def download_many_stock_data(self, index, start="2000-01-01", end=yesterday):
         """
         Only run on trading days. Function will add a repeated date if executed on a non-trading day.
         """
-        no_data_tickers = []
+        with open(f'../data/tickers/{index}tickers.pickle', 'rb') as f:
+            tickers = pickle.load(f)
 
         for ticker in tickers:
-            self.download_stock_data(ticker, start, end)
+            if ticker[0] < "M":
+                continue
+            else:
+                self.download_stock_data(ticker, start, end)
+                time.sleep(12)  # to bypass limit to 5 api calls per min
 
     def delete_latest_date(self):
         """
-        Delete last row in table in cases of duplicated dates
+        Delete last row in all tables in cases of duplicated dates
         :return:
         """
-        conn = sqlite3.connect("../data/stock_data.db")
-        for ticker in conn.execute("select name from sqlite_master where type='table' "):
+        for ticker in self.conn.execute("select name from sqlite_master where type='table' "):
             print("Deleting latest date for", ticker[0])
-            conn.execute(f"DELETE FROM '{ticker[0]}' WHERE Date = (SELECT MAX(Date) FROM '{ticker[0]}')")
-        conn.commit()
+            self.conn.execute(f"DELETE FROM '{ticker[0]}' WHERE Date = (SELECT MAX(Date) FROM '{ticker[0]}')")
+        self.conn.commit()
         
     def read_stock_data(self, ticker):
+        self.c.execute(f"SELECT count(name) FROM sqlite_master WHERE type='table' AND name='{ticker}'")
         return
 
 
 if __name__ == "__main__":
     data = StockData()
-    data.download_many_stock_data(['AAL'])
+    # print(data.get_stock_data('AAPL'))
+    # data.download_stock_data('AAPL', end='2020-01-01')
+    data.download_many_stock_data("SP100")
+    # data.read_stock_data('AAPL')
