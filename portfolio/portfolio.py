@@ -1,8 +1,11 @@
-from data_utils.stock_data import StockData
+from datetime import datetime
+
 import numpy as np
 import matplotlib.pyplot as plt
 from scipy.stats import pearsonr
-from datetime import datetime
+from seaborn import displot
+
+from data_utils.stock_data import StockData
 
 
 class Portfolio:
@@ -27,8 +30,14 @@ class Portfolio:
     def plot_correlation(self, tickers, start, end):
         return
 
-    def var(self):
-        return
+    def var(self, ticker, start='2020-01-01', end='2022-12-31'):
+        start = datetime.strptime(start, '%Y-%m-%d').date()
+        end = datetime.strptime(end, '%Y-%m-%d').date()
+        df = self.stock_data.get_stock_data(ticker)['adj close'][start:end]
+        log_returns = np.log(df) - np.log(df.shift(1))
+        log_returns.dropna(inplace=True)
+        displot(log_returns, bins=100)
+        plt.show()
 
     def cvar(self):
         return
@@ -39,4 +48,5 @@ class Portfolio:
 
 if __name__ == '__main__':
     p = Portfolio()
-    print(p.correlation('AAPL', 'TSLA'))
+    # print(p.correlation('AAPL', 'TSLA'))
+    p.var('TSLA')

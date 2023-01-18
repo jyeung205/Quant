@@ -90,13 +90,15 @@ class StockData:
         """
         with open(f'../data/tickers/{index}tickers.pickle', 'rb') as f:
             tickers = pickle.load(f)
-
+        error_tickers = []
         for ticker in tickers:
-            if ticker[0] < "M":
-                continue
-            else:
+            try:
                 self.download_stock_data(ticker, start, end)
                 time.sleep(12)  # to bypass limit to 5 api calls per min
+            except Exception as e:
+                error_tickers.append(ticker)
+                print(e)
+        print(error_tickers)
 
     def delete_latest_date(self):
         """
@@ -117,5 +119,5 @@ if __name__ == "__main__":
     data = StockData()
     # print(data.get_stock_data('AAPL'))
     # data.download_stock_data('AAPL', end='2020-01-01')
-    data.download_many_stock_data("SP100")
-    # data.read_stock_data('AAPL')
+    data.download_many_stock_data("SP500")
+
