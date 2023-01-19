@@ -36,7 +36,7 @@ class Portfolio:
         df = self.stock_data.get_stock_data(ticker)['adj close'][start:end]
         log_returns = np.log(df) - np.log(df.shift(1))
         log_returns.dropna(inplace=True)
-        displot(log_returns, bins=100)
+        displot(log_returns, bins=50)
         plt.show()
 
     def cvar(self):
