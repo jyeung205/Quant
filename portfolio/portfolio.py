@@ -4,6 +4,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 from scipy.stats import pearsonr
 from seaborn import displot
+import yfinance as yf
 
 from data_utils.stock_data import StockData
 
@@ -39,11 +40,67 @@ class Portfolio:
         displot(log_returns, bins=50)
         plt.show()
 
-    def cvar(self):
-        return
+    def portfolio_expected_shortfall(self, tickers):
+        # Get historical data for the stocks
+        data = yf.download(tickers, start='2010-01-01', end='2022-12-31')['Adj Close']
 
-    def markowitz(self):
-        return
+        # Calculate daily returns
+        returns = data.pct_change()
+
+        # Calculate the portfolio returns
+        portfolio_returns = returns.mean(axis=1)
+
+        # Sort the portfolio returns in descending order
+        portfolio_returns = -np.sort(-portfolio_returns)
+
+        # Calculate the value at risk (VaR) at the 1% significance level
+        VaR = norm.ppf(0.01, portfolio_returns.mean(), portfolio_returns.std())
+
+        # Calculate the expected shortfall (ES)
+        ES = np.mean(portfolio_returns[portfolio_returns < VaR])
+
+        # Plot the portfolio returns
+        plt.plot(portfolio_returns)
+        plt.axhline(y=VaR, color='r', linestyle='-')
+        plt.title('Expected Shortfall')
+        plt.xlabel('Sorted Returns')
+        plt.ylabel('Value')
+        plt.show()
+
+        # Return the expected shortfall
+        return ES
+
+    def markowitz(self, tickers):
+        # Get historical data for the stocks
+        data = yf.download(tickers, start='2010-01-01', end='2022-12-31')['Adj Close']
+
+        # Calculate daily returns
+        returns = data.pct_change()
+
+        # Define the objective function
+        def portfolio_variance(w, r):
+            cov = r.cov()
+            return w.T @ cov @ w
+
+        # Define the optimization constraints
+        def constraint_sum(w):
+            return w.sum() - 1
+
+        # Set the initial guess for the weights
+        w0 = np.ones(len(tickers)) / len(tickers)
+
+        # Define the optimization bounds
+        bounds = [(0, 1) for i in range(len(tickers))]
+
+        # Perform the optimization
+        result = minimize(portfolio_variance, w0, args=(returns,), bounds=bounds,
+                          constraints={"type": "eq", "fun": constraint_sum})
+
+        # Get the optimal weights
+        optimal_weights = result.x
+
+        # Return the optimized portfolio
+        return optimal_weights
 
 
 if __name__ == '__main__':
