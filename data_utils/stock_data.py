@@ -6,7 +6,7 @@ from datetime import datetime, timedelta
 import pandas as pd
 import sqlite3
 import time
-
+import yfinance as yf
 from alpha_vantage.timeseries import TimeSeries
 
 
@@ -58,10 +58,13 @@ class StockData:
         print(tickers)
         return tickers
 
-    def get_stock_data(self, ticker, start='2000-01-01', end=yesterday):
-        df = self.app.get_daily_adjusted(ticker, 'full')[0]
-        df.sort_index(inplace=True)
-        df = df[['1. open', '2. high', '3. low', '4. close', '5. adjusted close', '6. volume']][start:end]
+    def get_stock_data(self, ticker, start='2000-01-01', end=yesterday, src='yf'):
+        if src == 'yf':
+            df = yf.download(ticker)[start:end]
+        else:
+            df = self.app.get_daily_adjusted(ticker, 'full')[0]
+            df.sort_index(inplace=True)
+            df = df[['1. open', '2. high', '3. low', '4. close', '5. adjusted close', '6. volume']][start:end]
         df.columns = ['open', 'high', 'low', 'close', 'adj close', 'volume']
         df.index = df.index.date
         df.index.name = "Date"
@@ -117,7 +120,8 @@ class StockData:
 
 if __name__ == "__main__":
     data = StockData()
+    data.get_stock_data('AAPL', src='yf', start='2020-01-01')
     # print(data.get_stock_data('AAPL'))
     # data.download_stock_data('AAPL', end='2020-01-01')
-    data.download_many_stock_data("SP500")
+    # data.download_many_stock_data("SP500")
 

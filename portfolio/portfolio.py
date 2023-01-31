@@ -2,11 +2,16 @@ from datetime import datetime
 
 import numpy as np
 import matplotlib.pyplot as plt
-from scipy.stats import pearsonr
+from scipy.stats import pearsonr, norm
 from seaborn import displot
+import seaborn as sns
 import yfinance as yf
+from scipy.optimize import minimize
 
 from data_utils.stock_data import StockData
+
+START = '2010-01-01'
+END = '2021-12-01'
 
 
 class Portfolio:
@@ -14,61 +19,59 @@ class Portfolio:
     def __init__(self):
         self.stock_data = StockData()
 
-    def correlation(self, ticker1, ticker2, start='2020-01-01', end='2021-01-01'):
+    def _calc_log_returns_weighted_portfolio(self, tickers, weights):
+        df = yf.download(tickers, start=start, end=end)['Adj Close']
+        return
+    @staticmethod
+    def correlation(tickers, start=START, end=END):
         """
         Correlation of log returns
         """
+        df = yf.download(tickers, start=start, end=end)['Adj Close']
+        log_returns = np.log(df) - np.log(df.shift())
+        corr = log_returns.corr()
+        return corr
+
+    def plot_correlation(self, tickers, start=START, end=END):
+        corr = self.correlation(tickers, start, end)
+        plt.figure(figsize=(10, 10))
+        sns.heatmap(corr, annot=True)
+        plt.title('Log Returns Correlation Heatmap')
+        plt.show()
+        return corr
+
+    def plot_returns_dist(self, tickers, start=START, end=END):
         start = datetime.strptime(start, '%Y-%m-%d').date()
         end = datetime.strptime(end, '%Y-%m-%d').date()
-        df1 = self.stock_data.get_stock_data(ticker1)['adj close'][start:end]
-        df2 = self.stock_data.get_stock_data(ticker2)['adj close'][start:end]
-        log_returns1 = np.log(df1) - np.log(df1.shift(1))
-        log_returns2 = np.log(df2) - np.log(df2.shift(1))
-        log_returns1.dropna(inplace=True)
-        log_returns2.dropna(inplace=True)
-        return pearsonr(log_returns1, log_returns2)[0]
-
-    def plot_correlation(self, tickers, start, end):
-        return
-
-    def var(self, ticker, start='2020-01-01', end='2022-12-31'):
-        start = datetime.strptime(start, '%Y-%m-%d').date()
-        end = datetime.strptime(end, '%Y-%m-%d').date()
-        df = self.stock_data.get_stock_data(ticker)['adj close'][start:end]
+        df = self.stock_data.get_stock_data(tickers)['adj close'][start:end]  # todo should i just use yfinance?
         log_returns = np.log(df) - np.log(df.shift(1))
         log_returns.dropna(inplace=True)
         displot(log_returns, bins=50)
         plt.show()
 
-    def portfolio_expected_shortfall(self, tickers):
-        # Get historical data for the stocks
-        data = yf.download(tickers, start='2010-01-01', end='2022-12-31')['Adj Close']
+    def sharpe(self, tickers, start=START, end=END):
+        return
 
-        # Calculate daily returns
-        returns = data.pct_change()
+    def sortino(self, tickers, start=START, end=END):
+        return
 
-        # Calculate the portfolio returns
-        portfolio_returns = returns.mean(axis=1)
-
-        # Sort the portfolio returns in descending order
-        portfolio_returns = -np.sort(-portfolio_returns)
-
-        # Calculate the value at risk (VaR) at the 1% significance level
-        VaR = norm.ppf(0.01, portfolio_returns.mean(), portfolio_returns.std())
-
-        # Calculate the expected shortfall (ES)
-        ES = np.mean(portfolio_returns[portfolio_returns < VaR])
-
-        # Plot the portfolio returns
-        plt.plot(portfolio_returns)
-        plt.axhline(y=VaR, color='r', linestyle='-')
-        plt.title('Expected Shortfall')
-        plt.xlabel('Sorted Returns')
-        plt.ylabel('Value')
+    @staticmethod
+    def var(tickers, perc=5, start=END, end=END):
+        data = yf.download(tickers, start=start, end=end)['Adj Close']
+        log_returns = np.log(data) - np.log(data.shift(1))
+        mean = log_returns.mean()
+        vol = log_returns.std()
+        var = norm.ppf(perc, mean, vol)
+        plt.plot(log_returns)
+        plt.axhline(y=var, color='r', linestyle='-')
+        plt.title(f'{perc}% VaR')
+        plt.xlabel('Returns')
+        plt.ylabel('Dist')
         plt.show()
+        return var
 
-        # Return the expected shortfall
-        return ES
+    def cvar(self, tickers):
+        return
 
     def markowitz(self, tickers):
         # Get historical data for the stocks
@@ -105,5 +108,5 @@ class Portfolio:
 
 if __name__ == '__main__':
     p = Portfolio()
-    # print(p.correlation('AAPL', 'TSLA'))
-    p.var('TSLA')
+    W = p.markowitz(['TSLA', 'AAPL', 'AMZN'])
+    print(W)
