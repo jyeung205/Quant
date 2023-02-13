@@ -29,10 +29,10 @@ d_2 = d_1 - \sigma \sqrt{T-t}.
 $$
 
 ### Implied Volatility
-| ![](../figures/tsla_iv.png) | ![](../figures/tsla_term_struct.png) |
+| ![](../figures/options/tsla_iv.png) | ![](../figures/options/tsla_term_struct.png) |
 |:---------------------------:|:----------------------------------------------:|
 
-![](../figures/tsla_iv_surface.png) 
+![](../figures/options/tsla_iv_surface.png) 
 
 
 ### Greeks
@@ -47,7 +47,7 @@ $$
 \Delta_p = \frac{\partial P}{\partial S} = 1 -N\left(d_1\right)
 $$
 
-| ![](../figures/delta_call.png) | ![](../figures/delta_put.png) |
+| ![](../figures/options/delta_call.png) | ![](../figures/options/delta_put.png) |
 |:------------------------------:|:-----------------------------:|
 
 - Gamma
@@ -56,7 +56,7 @@ $$
 \Gamma = \frac{\partial^2 C}{\partial S^2} = \frac{N'\left(d_1\right)}{S_0\sigma\sqrt{T}}
 $$
 
-![](../figures/gamma.png)
+![](../figures/options/gamma.png)
 
 - Vega
 
@@ -64,7 +64,7 @@ $$
 \nu = \frac{\partial C}{\partial \sigma}= S\sqrt{T} N'\left(d_1\right)
 $$
 
-![](../figures/vega.png)
+![](../figures/options/vega.png)
 
 - Theta
 
@@ -76,7 +76,7 @@ $$
 \Theta_p = \frac{\partial P}{\partial T} = -\frac{S N'\left(d_1\right)\sigma}{2\sqrt{T}} + rK e^{-rT} N\left(d_2\right)
 $$
 
-| ![](../figures/theta_call.png) | ![](../figures/theta_put.png) |
+| ![](../figures/options/theta_call.png) | ![](../figures/options/theta_put.png) |
 |:------------------------------:|:-----------------------------:|
 
 - Rho
@@ -89,5 +89,5 @@ $$
 \rho_p = \frac{\partial P}{\partial r} = -KTe^{-rT} N\left(-d_2\right)
 $$
 
-| ![](../figures/rho_call.png) | ![](../figures/rho_put.png) |
+| ![](../figures/options/rho_call.png) | ![](../figures/options/rho_put.png) |
 |:----------------------------:|:---------------------------:|

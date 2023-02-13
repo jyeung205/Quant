@@ -70,7 +70,7 @@ class StockData:
         df.index.name = "Date"
         return df
 
-    def download_stock_data(self, ticker, start='2000-01-01', end=yesterday):
+    def download_stock_data(self, ticker, start='2000-01-01', end=yesterday, src='yf'):
         self.c.execute(f"SELECT count(name) FROM sqlite_master WHERE type='table' AND name='{ticker}'")
         if self.c.fetchone()[0] == 1:  # If table already exists in db
             for date in self.conn.execute(f"SELECT DATE FROM '{ticker}' ORDER BY DATE DESC LIMIT 1"):  # get last date
@@ -80,7 +80,7 @@ class StockData:
                     next_date_in_db = datetime.strptime(date[0], "%Y-%m-%d") + timedelta(days=1)
                     next_date_in_db = next_date_in_db.strftime("%Y-%m-%d")
                     print(f"Downloading Data for {ticker} from {next_date_in_db} to {end}")
-                    df = self.get_stock_data(ticker, next_date_in_db, end)
+                    df = self.get_stock_data(ticker, next_date_in_db, end, src)
                     df.to_sql(ticker, self.conn, schema=None, if_exists="append")
         else:  # If table does not exist in db
             print(f"Downloading Data for {ticker} from {start} to {end}")
@@ -96,8 +96,7 @@ class StockData:
         error_tickers = []
         for ticker in tickers:
             try:
-                self.download_stock_data(ticker, start, end)
-                time.sleep(12)  # to bypass limit to 5 api calls per min
+                self.download_stock_data(ticker, start, end, 'yf')
             except Exception as e:
                 error_tickers.append(ticker)
                 print(e)
@@ -120,8 +119,5 @@ class StockData:
 
 if __name__ == "__main__":
     data = StockData()
-    data.get_stock_data('AAPL', src='yf', start='2020-01-01')
-    # print(data.get_stock_data('AAPL'))
-    # data.download_stock_data('AAPL', end='2020-01-01')
-    # data.download_many_stock_data("SP500")
+    data.download_many_stock_data("SP500")
 
