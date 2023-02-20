@@ -17,7 +17,7 @@ class StockData:
         self.conn = sqlite3.connect("../data/stock_data.db")
         self.c = self.conn.cursor()
         self.app = TimeSeries("LHE90GZROAECNZ96",
-                              output_format='pandas')  # TODO add alpha vantagae api key to env variables, yahoo finance cannot referance start date
+                              output_format='pandas') 
 
     def save_index_tickers(self, index='S&P 100'):
         """

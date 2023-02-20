@@ -8,6 +8,12 @@ from scipy.optimize import fsolve
 
 from data_utils.options_data import OptionsData
 
+plt.style.use('ggplot')
+plt.rcParams['xtick.labelsize'] = 14
+plt.rcParams['ytick.labelsize'] = 14
+plt.rcParams['figure.titlesize'] = 18
+plt.rcParams['figure.titleweight'] = 'medium'
+plt.rcParams['lines.linewidth'] = 2.5
 
 RISK_FREE_RATE = 0.04
 
@@ -361,9 +367,9 @@ class BlackScholes:
 
 
 if __name__ == "__main__":
-    bs = BlackScholes('TSLA', 110, '2023-02-03', RISK_FREE_RATE, 0.60)
-    # bs.plot_delta_call()
-    # bs.plot_iv_call()
+    bs = BlackScholes('TSLA', 200, '2023-03-24', RISK_FREE_RATE, 0.60)
+    bs.plot_delta_call()
+    bs.plot_iv_call()
     bs.plot_iv_put()
     # bs.plot_delta_put()
     # bs.plot_gamma()
@@ -372,4 +378,5 @@ if __name__ == "__main__":
     # bs.plot_theta_put()
     # bs.plot_rho_call()
     # bs.plot_rho_put()
+    bs.plot_iv_surface()
 

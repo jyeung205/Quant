@@ -73,7 +73,7 @@ class Portfolio:
     def calc_sharpe(self):
         mean = self.portfolio_returns.mean()
         vol = self.portfolio_returns.std()
-        self.sharpe = np.sqrt(252) * (mean - (RFR/360)) / vol
+        self.sharpe = (252*mean - RFR) / (np.sqrt(252)*vol)
         return self.sharpe
 
     def calc_sortino(self):
@@ -131,5 +131,6 @@ class Portfolio:
 
 
 if __name__ == '__main__':
-    p = Portfolio(['TSLA', 'AAPL', 'AMZN', 'NFLX', 'MSFT', 'BBY', 'A'])
-    p.plot_correlation()
+    p = Portfolio(['TSLA'])
+    # p.plot_correlation()
+    print(p.calc_sharpe())
