@@ -93,4 +93,5 @@ $$
 |:----------------------------:|:---------------------------:|
 
 ![](figures/portfolio/correlation.png) 
-![](figures/portfolio/efficient frontier.png) 
+![](figures/portfolio/efficientfrontier.png) 
+![](figures/portfolio/VaR.png) 

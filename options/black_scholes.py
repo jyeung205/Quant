@@ -82,7 +82,7 @@ class BlackScholes:
         d2 = self._calc_d2(s, k, t, r, sigma)
         return k * np.exp(-r * t) * norm.cdf(-d2) - s * norm.cdf(-d1)
 
-    def iv_call(self, s=None, k=None, t=None, r=None, sigma0=0.30, option_price=10):
+    def iv_call(self, s=None, k=None, t=None, r=None, sigma0=0.30, option_price=None):
         s, k, t, r, _ = self._config_inputs(s, k, t, r, None)
 
         def f(sigma):
@@ -346,6 +346,7 @@ class BlackScholes:
                 price = chain[strike][expiry]
                 iv = self.iv_call(s, strike, expiry, RISK_FREE_RATE, 0.5, price)
                 chain[strike][expiry] = iv
+                print(expiry, strike, 'price', price, iv)
 
         fig = plt.figure(figsize=(10, 8))
 
@@ -367,10 +368,10 @@ class BlackScholes:
 
 
 if __name__ == "__main__":
-    bs = BlackScholes('TSLA', 200, '2023-03-24', RISK_FREE_RATE, 0.60)
+    bs = BlackScholes('TSLA', 200, '2023-05-19', RISK_FREE_RATE, 0.72)
     bs.plot_delta_call()
     bs.plot_iv_call()
-    bs.plot_iv_put()
+    # bs.plot_iv_put()
     # bs.plot_delta_put()
     # bs.plot_gamma()
     # bs.plot_vega()
