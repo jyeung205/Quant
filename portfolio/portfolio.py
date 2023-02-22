@@ -126,11 +126,13 @@ class Portfolio:
         ax.set_xlabel('Volatility')
         ax.set_ylabel('Returns')
         ax.set_title('Efficient Frontier')
+        plt.grid()
         # plt.colorbar(label='Sharpe Ratio')
         plt.show()
 
 
 if __name__ == '__main__':
-    p = Portfolio(['TSLA'])
-    # p.plot_correlation()
-    print(p.calc_sharpe())
+    p = Portfolio(['TSLA', 'AAPL', "AMZN", 'GS', 'BBBY'])
+    # # p.plot_correlation()
+    # print(p.calc_sharpe())
+    p.plot_efficient_frontier()
